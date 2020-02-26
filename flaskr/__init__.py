@@ -3,6 +3,7 @@ from flask import request
 import json
 import os
 import sqlite3
+from . import db
 
 def create_app(test_config=None):
   app = Flask(__name__, instance_relative_config=True)
@@ -24,32 +25,56 @@ def create_app(test_config=None):
   except OSError:
       pass
 
-  @app.route('/model/<model_id>', methods=['GET', 'POST'])
+  with app.app_context():
+    @app.route('/model/<model_id>', methods=['GET', 'POST'])
 
-  def model(model_id):
-    if request.method == 'GET':
-      return 'Model' + model_id
-    if request.method == 'POST':
-      data = json.loads(request.data)
+    def model(model_id):
+      if request.method == 'GET':
+        return 'Model' + model_id
+      if request.method == 'POST':
+        data = json.loads(request.data)
 
-      array = [1,2,3,4]
-      state = {
-        'herbivoreBiomasses': array,
-        'herbivoreAbundances': array,
-        'carnivoreBiomasses': array,
-        'carnivoreAbundances': array,
-        'temperature': 25,
-        'timeElapsed': 1,
-      }
+        conn = db.get_db()
+        with conn:
+          if not get_model(conn, model_id):
+            create_model(conn, (model_id, 0))
 
-      return {
-        'biodiversityScores': array,
-        'harvestedBiomasses': array,
-        'meanHarvestedBiomass': array,
-        'state': state
-      }
-  
-  from . import db
-  db.init_app(app)
+        array = [1,2,3,4]
+        state = {
+          'herbivoreBiomasses': array,
+          'herbivoreAbundances': array,
+          'carnivoreBiomasses': array,
+          'carnivoreAbundances': array,
+          'temperature': 25,
+          'timeElapsed': 1,
+        }
+
+        return {
+          'biodiversityScores': array,
+          'harvestedBiomasses': array,
+          'meanHarvestedBiomass': array,
+          'model_id': model_id,
+          'state': state
+        }
+    
+    def get_model(conn, model_id):
+      sql = "SELECT * FROM model WHERE id = ?"
+      cur = conn.cursor()
+      cur.execute(sql, (model_id))
+      data = cur.fetchall()
+
+      if len(data) == 0:
+        return None
+      else:
+        return data[0]
+
+    def create_model(conn, model):
+      sql = ''' INSERT INTO model (id, time_elapsed) 
+                VALUES (?,?) '''
+      cur = conn.cursor()
+      cur.execute(sql, model)
+      return cur.lastrowid
+
+    db.init_app(app)
 
   return app
