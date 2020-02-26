@@ -1,8 +1,9 @@
+import os
+import sqlite3
 from flask import Flask
 from flask import request
 import json
-import os
-import sqlite3
+from . import SimpleMadingleyModel
 from . import db
 
 def create_app(test_config=None):
@@ -72,7 +73,8 @@ def create_app(test_config=None):
         return data[0]
 
     def init_model(conn, model_id):
-      print('Init model', model_id)
+      grid_state = SimpleMadingleyModel.ReturnInitialGrid()
+      print('Init model', model_id, grid_state)
 
     def update_model(conn, data):
       print('Update model', data)
