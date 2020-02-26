@@ -18,6 +18,7 @@ CREATE TABLE timestamp_model_join (
 
 CREATE TABLE cell_model_join (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cell_number INTEGER,
   model_id INTEGER NOT NULL,
   FOREIGN KEY (model_id) REFERENCES model (id)
 );

@@ -38,6 +38,9 @@ def create_app(test_config=None):
         with conn:
           if not get_model(conn, model_id):
             create_model(conn, (model_id, 0))
+            init_model(conn, model_id)
+          else:
+            update_model(conn, data)
 
         array = [1,2,3,4]
         state = {
@@ -67,6 +70,12 @@ def create_app(test_config=None):
         return None
       else:
         return data[0]
+
+    def init_model(conn, model_id):
+      print('Init model', model_id)
+
+    def update_model(conn, data):
+      print('Update model', data)
 
     def create_model(conn, model):
       sql = ''' INSERT INTO model (id, time_elapsed) 
