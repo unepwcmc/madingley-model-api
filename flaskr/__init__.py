@@ -5,6 +5,7 @@ from flask import request
 import json
 from . import SimpleMadingleyModel
 from . import db
+import pdb
 
 def create_app(test_config=None):
   app = Flask(__name__, instance_relative_config=True)
@@ -72,9 +73,49 @@ def create_app(test_config=None):
       else:
         return data[0]
 
+    def get_cell_id(conn, cell_number, model_id):
+      sql = "SELECT id FROM cell_model_join WHERE model_id = ? AND cell_number = ?"
+      cur = conn.cursor()
+      cur.execute(sql, (model_id, cell_number))
+      cell = cur.fetchall()
+
+      if len(cell) == 0:
+        sql = "INSERT INTO cell_model_join (cell_number, model_id) VALUES (?,?)"
+        cur = conn.cursor()
+        cur.execute(sql, (cell_number, model_id))
+        return cur.lastrowid
+      else:
+        return cell[0]
+
     def init_model(conn, model_id):
+      init_model_state(conn, model_id)
       grid_state = SimpleMadingleyModel.ReturnInitialGrid()
-      print('Init model', model_id, grid_state)
+      for cell_index in range(len(grid_state['herbivore_biomasses'])):
+        cell_state_values_for_db = ()
+
+        for property in grid_state:
+          property_states = grid_state[property]
+          cell_value = property_states[cell_index]
+
+          if isinstance(cell_value, list):
+            cell_state_values_for_db += (json.dumps(cell_value),)
+          else:
+            cell_state_values_for_db += (cell_value,)
+
+        cell_id = get_cell_id(conn, cell_index + 1, model_id)
+
+        sql = '''INSERT INTO timestamp_cell_join (
+                cell_id, 
+                timestamp,
+                herbivore_biomasses,
+                herbivore_abundances,
+                carnivore_biomasses,
+                carnivore_abundances,
+                primary_producer_biomass
+              ) VALUES (?,?,?,?,?,?,?)
+              '''
+        cur = conn.cursor()
+        cur.execute(sql, (cell_id, 0,) + cell_state_values_for_db)
 
     def update_model(conn, data):
       print('Update model', data)
@@ -84,6 +125,13 @@ def create_app(test_config=None):
                 VALUES (?,?) '''
       cur = conn.cursor()
       cur.execute(sql, model)
+      return cur.lastrowid
+
+    def init_model_state(conn, model_id):
+      sql = ''' INSERT INTO timestamp_model_join (model_id, timestamp, temperature) 
+                VALUES (?,?,?) '''
+      cur = conn.cursor()
+      cur.execute(sql, (model_id, 0, 25))
       return cur.lastrowid
 
     db.init_app(app)

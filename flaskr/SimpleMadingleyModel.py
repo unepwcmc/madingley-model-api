@@ -18,7 +18,7 @@ BMS = np.exp(np.arange(math.log(0.1),math.log(1000),0.08)).tolist()
 #bms = [0.1,0.2,0.5,1,2,5,10,12,15,20,30,40,50,60,70,80,90,100]
 
 cell_area = 1000
-ncells = 5*5
+ncells = 3*3
 
 def ReturnInitialGrid():
   herbivore_biomasses = [[]]

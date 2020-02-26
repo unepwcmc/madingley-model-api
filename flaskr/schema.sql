@@ -11,7 +11,7 @@ CREATE TABLE model (
 CREATE TABLE timestamp_model_join (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   model_id INTEGER NOT NULL,
-  time_stamp INTEGER,
+  timestamp INTEGER,
   temperature REAL NOT NULL,
   FOREIGN KEY (model_id) REFERENCES model (id)
 );
@@ -26,11 +26,11 @@ CREATE TABLE cell_model_join (
 CREATE TABLE timestamp_cell_join (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   cell_id INTEGER NOT NULL,
-  time_stamp INTEGER NOT NULL,
-  carnivore_abundance REAL NOT NULL,
-  carnivore_biomass REAL NOT NULL,
-  herbivore_abundance REAL NOT NULL,
-  herbivore_biomass REAL NOT NULL,
+  timestamp INTEGER NOT NULL,
+  carnivore_abundances TEXT NOT NULL,
+  carnivore_biomasses TEXT NOT NULL,
+  herbivore_abundances TEXT NOT NULL,
+  herbivore_biomasses TEXT NOT NULL,
   primary_producer_biomass REAL NOT NULL,
   FOREIGN KEY (cell_id) REFERENCES cell (id)
 );
