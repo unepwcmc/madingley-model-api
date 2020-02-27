@@ -36,30 +36,14 @@ def create_app(test_config=None):
         return 'Model' + model_id
       if request.method == 'POST':
         data = json.loads(request.data)
-
+        response = 'initing'
         with db.get_db():
           if not db_controller.get_model(model_id):
             init_model(model_id)
           else:
-            update_model(data)
+            response = update_model(model_id, data)
 
-        array = [1,2,3,4]
-        state = {
-          'herbivoreBiomasses': array,
-          'herbivoreAbundances': array,
-          'carnivoreBiomasses': array,
-          'carnivoreAbundances': array,
-          'temperature': 25,
-          'timeElapsed': 1,
-        }
-
-        return {
-          'biodiversityScores': array,
-          'harvestedBiomasses': array,
-          'meanHarvestedBiomass': array,
-          'model_id': model_id,
-          'state': state
-        }
+        return response
     
     def init_model(model_id):
       db_controller.create_model(model_id)
@@ -91,6 +75,17 @@ def create_app(test_config=None):
               ) VALUES (?,?,?,?,?,?,?)
               '''
         db_controller.execute_sql(sql, (cell_id, 0,) + cell_state_values_for_db)
+
+    def update_model(model_id, data):
+      current_timestamp = db_controller.get_model_time_elapsed(model_id)
+      current_model_state = db_controller.get_model_at_t(current_timestamp, model_id)
+      current_cell_states = db_controller.get_cells_at_t(model_id, current_timestamp)
+
+      return {
+        'current_t': current_timestamp,
+        'model': current_model_state,
+        'cells': current_cell_states
+      }
 
     db.init_app(app)
 
