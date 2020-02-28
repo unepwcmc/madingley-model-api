@@ -7,7 +7,6 @@ Created on Tue Feb 18 22:06:38 2020
 import numpy as np
 import math
 import random
-import pdb
 
 ##
 # ncell = Integer number of grid cells
