@@ -1,6 +1,8 @@
+import json
+import pdb
 from flask import current_app, g
 from . import db
-import pdb
+from . simple_madingley_model import CELL_STATE_PROPERTIES
 
 def execute_sql(sql, values):
   conn = db.get_db()
@@ -25,6 +27,13 @@ def create_model(model_id):
 
   return cur.lastrowid
 
+def update_timestamp_model_join(timestamp, model_id, temperature):
+  sql = ''' INSERT INTO timestamp_model_join (timestamp, model_id, temperature) 
+            VALUES (?,?,?) '''
+  cur = execute_sql(sql, (timestamp, model_id, temperature))
+
+  return cur.lastrowid
+
 def get_timestamp_model_join(timestamp, model_id):
   sql = "SELECT * FROM timestamp_model_join WHERE model_id = ? and timestamp = ?"
   cur = execute_sql(sql, (model_id, timestamp))
@@ -36,11 +45,7 @@ def get_model_at_t(timestamp, model_id):
   return dict(get_timestamp_model_join(timestamp, model_id))
 
 def init_timestamp_model_join(model_id):
-  sql = ''' INSERT INTO timestamp_model_join (model_id, timestamp, temperature) 
-            VALUES (?,?,?) '''
-  cur = execute_sql(sql, (model_id, 0, 25))
-
-  return cur.lastrowid
+  update_timestamp_model_join(0, model_id, 25)
 
 def get_cell_model_join_id(cell_number, model_id):
   cell_model_join = get_cell_model_join(cell_number, model_id)
@@ -60,10 +65,14 @@ def create_cell(cell_number, model_id):
   
   return cur.lastrowid
 
-def get_cells_at_t(model_id, timestamp):
+def get_cell_ids_for_model(model_id):
   sql = "SELECT id FROM cell_model_join WHERE model_id = ? ORDER BY cell_number"
   cur = execute_sql(sql, (model_id))
-  cell_ids = map((lambda x: x[0]), cur.fetchall())
+
+  return list(map((lambda x: x[0]), cur.fetchall()))
+
+def get_cells_at_t(model_id, timestamp):
+  cell_ids = get_cell_ids_for_model(model_id)
   
   cell_states = []
 
@@ -87,3 +96,44 @@ def dict_factory(cursor, row):
   for idx, col in enumerate(cursor.description):
       d[col[0]] = row[idx]
   return d
+
+def init_model_cells(model_id, length):
+  for cell_index in range(length):
+    create_cell(cell_index + 1, model_id)
+
+def update_timestamp_cell_joins(timestamp, model_id, state):
+  cell_ids = get_cell_ids_for_model(model_id)
+  cell_states = {k: state[k] for k in CELL_STATE_PROPERTIES}
+
+  for cell_index in range(len(cell_ids)):
+    cell_id = cell_ids[cell_index]
+    update_timestamp_cell_join(timestamp, cell_id, cell_index, cell_states)
+
+def update_model_time_elapsed(model_id, time_elapsed):
+  sql = '''
+    UPDATE model 
+    SET time_elapsed = ? 
+    WHERE id = ?
+  '''
+  cur = execute_sql(sql, (time_elapsed, model_id))
+  
+  return cur.lastrowid
+
+def update_timestamp_cell_join(timestamp, cell_id, cell_index, cell_states):
+  cell_state_values_for_db = ()
+
+  for property in cell_states:
+    cell_value = cell_states[property][cell_index]
+    cell_state_values_for_db += (json.dumps(cell_value),) if isinstance(cell_value, list) else (cell_value,)
+
+  sql = '''INSERT INTO timestamp_cell_join (
+          cell_id, 
+          timestamp,
+          herbivore_biomasses,
+          herbivore_abundances,
+          carnivore_biomasses,
+          carnivore_abundances,
+          primary_producer_biomass
+        ) VALUES (?,?,?,?,?,?,?)
+        '''
+  execute_sql(sql, (cell_id, timestamp,) + cell_state_values_for_db)

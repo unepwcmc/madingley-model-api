@@ -48,44 +48,54 @@ def create_app(test_config=None):
     def init_model(model_id):
       db_controller.create_model(model_id)
       db_controller.init_timestamp_model_join(model_id)
+      db_controller.init_model_cells(model_id, 9)
 
       grid_state = simple_madingley_model.ReturnInitialGrid()
-      for cell_index in range(len(grid_state['herbivore_biomasses'])):
-        cell_state_values_for_db = ()
-
-        for property in grid_state:
-          property_states = grid_state[property]
-          cell_value = property_states[cell_index]
-
-          if isinstance(cell_value, list):
-            cell_state_values_for_db += (json.dumps(cell_value),)
-          else:
-            cell_state_values_for_db += (cell_value,)
-
-        cell_id = db_controller.create_cell(cell_index + 1, model_id)
-
-        sql = '''INSERT INTO timestamp_cell_join (
-                cell_id, 
-                timestamp,
-                herbivore_biomasses,
-                herbivore_abundances,
-                carnivore_biomasses,
-                carnivore_abundances,
-                primary_producer_biomass
-              ) VALUES (?,?,?,?,?,?,?)
-              '''
-        db_controller.execute_sql(sql, (cell_id, 0,) + cell_state_values_for_db)
-
+      db_controller.update_timestamp_cell_joins(0, model_id, grid_state)
+      
     def update_model(model_id, data):
       current_timestamp = db_controller.get_model_time_elapsed(model_id)
       current_model_state = db_controller.get_model_at_t(current_timestamp, model_id)
       current_cell_states = db_controller.get_cells_at_t(model_id, current_timestamp)
+      
+      simple_madingley_model.ResetCellStateGlobals()
+      current_state_for_model = simple_madingley_model.GetCellStates()
+      current_state_for_model['temperature'] = current_model_state['temperature']
 
-      return {
-        'current_t': current_timestamp,
-        'model': current_model_state,
-        'cells': current_cell_states
+      for cell_state in current_cell_states:
+        for property in simple_madingley_model.CELL_STATE_PROPERTIES:
+          cell_property_value = cell_state[property]
+
+          current_state_for_model[property].append(
+            cell_property_value if isinstance(cell_property_value, float) else json.loads(cell_property_value)
+          )
+
+      new_state = simple_madingley_model.UpdateModelState(
+        current_state_for_model,
+        data['timestep'],
+        data['warming']
+      )
+
+      new_temp = new_state['temperature']
+      new_timestamp = current_timestamp + data['timestep']
+      db_controller.update_model_time_elapsed(model_id, new_timestamp)
+      db_controller.update_timestamp_model_join(new_timestamp, model_id, new_temp)
+      db_controller.update_timestamp_cell_joins(new_timestamp, model_id, new_state)
+
+      #TODO: add harvest data
+      new_state_for_frontend = {
+        'herbivore_biomasses': simple_madingley_model.GetSumOverBodymasses(new_state['herbivore_biomasses']),
+        'herbivore_abundances': simple_madingley_model.GetSumOverBodymasses(new_state['herbivore_abundances']),
+        'carnivore_biomasses': simple_madingley_model.GetSumOverBodymasses(new_state['carnivore_biomasses']),
+        'carnivore_abundances': simple_madingley_model.GetSumOverBodymasses(new_state['carnivore_abundances']),
+        'temperature': new_temp,
+        'timestamp': new_timestamp
       }
+
+      return json.dumps({
+        'db': new_state,
+        'frontend': new_state_for_frontend
+      })
 
     db.init_app(app)
 
