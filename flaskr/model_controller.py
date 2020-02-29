@@ -44,8 +44,8 @@ def get_response(state):
     'herbivore_abundances': simple_madingley_model.GetSumOverBodymasses(state['herbivore_abundances']),
     'carnivore_biomasses': simple_madingley_model.GetSumOverBodymasses(state['carnivore_biomasses']),
     'carnivore_abundances': simple_madingley_model.GetSumOverBodymasses(state['carnivore_abundances']),
-    'harvested_biomass': state['harvested_biomass'],
-    'mean_harvested_bodymass': state['mean_harvested_bodymass'],
+    'harvested_biomass': state['harvested_biomass'] if 'harvested_biomass' in state else [],
+    'mean_harvested_bodymass': state['mean_harvested_bodymass'] if 'mean_harvested_bodymass' in state else [],
     'temperature': state['temperature'],
     'timestamp': state['timestamp']
   })
