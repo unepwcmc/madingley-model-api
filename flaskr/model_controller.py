@@ -38,6 +38,11 @@ def update_model_state_in_db(model_id, state):
   db_controller.update_timestamp_model_join(timestamp, model_id, state['temperature'])
   db_controller.update_timestamp_cell_joins(timestamp, model_id, state)
 
+def get_current_state_response(model_id):
+  return get_response(
+    get_current_model_state(model_id)
+  )
+
 def get_response(state):
   return json.dumps({
     'herbivore_biomasses': simple_madingley_model.GetSumOverBodymasses(state['herbivore_biomasses']),

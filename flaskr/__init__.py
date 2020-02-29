@@ -33,7 +33,7 @@ def create_app(test_config=None):
 
     def model(model_id):
       if request.method == 'GET':
-        return 'Model' + model_id
+        return model_controller.get_current_state_response(model_id)
 
       if request.method == 'POST':
         data = json.loads(request.data)
@@ -42,9 +42,7 @@ def create_app(test_config=None):
         with db.get_db():
           if not db_controller.get_model(model_id):
             model_controller.init_model(model_id)
-            response = model_controller.get_response(
-              model_controller.get_current_model_state(model_id)
-            )
+            response = model_controller.get_current_state_response(model_id)
           else:
             response = model_controller.update_model(model_id, data)
 
