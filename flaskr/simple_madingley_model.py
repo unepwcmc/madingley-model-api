@@ -43,14 +43,14 @@ def ResetCellStateGlobals():
 
 BMS = np.exp(np.arange(math.log(0.1),math.log(1000),0.08)).tolist()
 #bms = [0.1,0.2,0.5,1,2,5,10,12,15,20,30,40,50,60,70,80,90,100]
+bodymasses = BMS
 cell_area = 1000
-N_CELLS = 10*10
+N_CELLS = 4*4
 ncells = N_CELLS
 #define a vector of harvest bodymasses per grid cell to use
 lhbm = np.random.normal(loc = 10,scale = 5,size = ncells)
 #define a vector of harvest efforts (0 - 1) per grid cell
 heff = np.random.uniform(size = ncells)
-bodymasses = BMS
 
 ResetCellStateGlobals()
 
