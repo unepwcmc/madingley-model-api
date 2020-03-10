@@ -26,5 +26,4 @@ Initiate the db:
 `flask init-db`
 
 Run the app:
-
 `flask run`
